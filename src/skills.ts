@@ -128,7 +128,9 @@ export async function buildSkillIndex(root: string): Promise<SkillIndex> {
       throw new Error(`${relative(root, skillMdPath)}: frontmatter is missing required "name"`);
     }
     if (typeof frontmatter.description !== "string" || frontmatter.description.length === 0) {
-      throw new Error(`${relative(root, skillMdPath)}: frontmatter is missing required "description"`);
+      throw new Error(
+        `${relative(root, skillMdPath)}: frontmatter is missing required "description"`,
+      );
     }
     if (frontmatter.name !== skillName) {
       throw new Error(

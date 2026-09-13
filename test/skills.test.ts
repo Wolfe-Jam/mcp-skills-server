@@ -42,7 +42,10 @@ test("buildSkillIndex: entry uri, frontmatter, and resources match SEP-2640's sh
     assert.equal(entry.uri, `skill://${name}/SKILL.md`);
     assert.equal(typeof entry.frontmatter.description, "string");
     assert.ok((entry.frontmatter.description as string).length > 0);
-    assert.ok(Array.isArray(entry.resources), "resources must be an array (none of the examples are dynamic)");
+    assert.ok(
+      Array.isArray(entry.resources),
+      "resources must be an array (none of the examples are dynamic)",
+    );
     assert.ok(
       entry.resources.some((r) => r.uri === entry.uri),
       "resources must include an entry matching the skill's own uri",
@@ -94,7 +97,8 @@ test("buildSkillIndex: a directory without a SKILL.md is not a skill", async () 
 
 test("buildSkillIndex: throws when frontmatter name doesn't match the directory name", async () => {
   const { root, cleanup } = scratch({
-    "actual-dir-name/SKILL.md": "---\nname: wrong-name\ndescription: mismatched on purpose\n---\nbody",
+    "actual-dir-name/SKILL.md":
+      "---\nname: wrong-name\ndescription: mismatched on purpose\n---\nbody",
   });
   try {
     await assert.rejects(() => buildSkillIndex(root), /must match its directory name/);

@@ -10,9 +10,10 @@
  *                           clients that aren't skills-extension-aware)
  *
  * Point it at any directory whose immediate subdirectories are Agent Skills
- * (https://agentskills.io/specification) — this is not FAF-specific; the
- * bundled `examples/skills/` (from Wolfe-Jam/faf-skills) is real content
- * used as the default, not a synthetic demo.
+ * (https://agentskills.io/specification). The bundled `examples/skills/` is
+ * one project's skills (Wolfe-Jam/faf-skills, real content, not a synthetic
+ * demo) — the default when no other root is configured; point it at yours
+ * instead.
  */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
@@ -25,7 +26,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { buildSkillIndex, type SkillIndex } from "./skills.js";
+import type { SkillIndex } from "./skills.js";
 import { NAME, SKILLS_EXTENSION_ID, VERSION } from "./constants.js";
 
 const SkillsListRequestSchema = RequestSchema.extend({
@@ -36,6 +37,28 @@ const SkillsListRequestSchema = RequestSchema.extend({
 const SkillsGetRequestSchema = RequestSchema.extend({
   method: z.literal("skills/get"),
   params: z.object({ uri: z.string() }),
+});
+
+/**
+ * Result shapes for `skills/list` / `skills/get`, per SEP-2640. Exported so
+ * callers (this repo's own demo and tests included) get real runtime
+ * validation of what comes back over the wire, instead of an `any` cast.
+ */
+export const SkillEntryResultSchema = z.object({
+  uri: z.string(),
+  frontmatter: z.record(z.string(), z.unknown()),
+  resources: z.union([
+    z.array(z.object({ uri: z.string(), digest: z.string(), size: z.number() })),
+    z.literal("dynamic"),
+  ]),
+});
+export const SkillsListResultSchema = z.object({
+  resultType: z.literal("complete"),
+  skills: z.array(SkillEntryResultSchema),
+});
+export const SkillsGetResultSchema = z.object({
+  resultType: z.literal("complete"),
+  skill: SkillEntryResultSchema,
 });
 
 export function createServer(index: SkillIndex): Server {
@@ -69,7 +92,10 @@ export function createServer(index: SkillIndex): Server {
       throw new McpError(ErrorCode.InvalidParams, `unknown resource: ${req.params.uri}`);
     }
     const bytes = await readFile(file.absPath);
-    const isText = file.mimeType.startsWith("text/") || file.mimeType === "application/json" || file.mimeType === "application/yaml";
+    const isText =
+      file.mimeType.startsWith("text/") ||
+      file.mimeType === "application/json" ||
+      file.mimeType === "application/yaml";
     return {
       contents: [
         isText

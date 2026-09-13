@@ -3,17 +3,22 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
-import { buildSkillIndex, createServer } from "../src/server.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import {
+  SkillsGetResultSchema,
+  SkillsListResultSchema,
+  buildSkillIndex,
+  createServer,
+} from "../src/server.js";
 import { SKILLS_EXTENSION_ID } from "../src/constants.js";
 
 const EXAMPLES_ROOT = join(import.meta.dirname, "..", "examples", "skills");
 
-// `skills/list` / `skills/get` aren't in the SDK's built-in client convenience
-// methods (SEP-2640 hasn't landed there yet) — call them via the generic
-// `request()` escape hatch, same mechanism the server used to register them.
-const AnyResult = z.looseObject({});
+function assertInvalidParams(err: unknown): boolean {
+  assert.ok(err instanceof McpError);
+  assert.equal(err.code, ErrorCode.InvalidParams);
+  return true;
+}
 
 async function connected(): Promise<Client> {
   const index = await buildSkillIndex(EXAMPLES_ROOT);
@@ -27,23 +32,32 @@ async function connected(): Promise<Client> {
 test("server: declares the io.modelcontextprotocol/skills extension capability", async () => {
   const client = await connected();
   const caps = client.getServerCapabilities();
-  assert.ok(caps?.extensions?.[SKILLS_EXTENSION_ID], "skills extension capability must be declared");
+  assert.ok(
+    caps?.extensions?.[SKILLS_EXTENSION_ID],
+    "skills extension capability must be declared",
+  );
   await client.close();
 });
 
 test("server: a server declaring the skills extension MUST also declare resources (spec, 2026-09-13 rev)", async () => {
   const client = await connected();
   const caps = client.getServerCapabilities();
-  assert.ok(caps?.resources, "resources capability must be declared alongside the skills extension");
+  assert.ok(
+    caps?.resources,
+    "resources capability must be declared alongside the skills extension",
+  );
   await client.close();
 });
 
 test("skills/list: returns every bundled skill with resultType complete", async () => {
   const client = await connected();
-  const result = (await client.request({ method: "skills/list", params: {} }, AnyResult)) as any;
+  const result = await client.request(
+    { method: "skills/list", params: {} },
+    SkillsListResultSchema,
+  );
   assert.equal(result.resultType, "complete");
   assert.equal(result.skills.length, 7);
-  const names = result.skills.map((s: any) => s.frontmatter.name).sort();
+  const names = result.skills.map((s) => s.frontmatter.name).sort();
   assert.deepEqual(names, [
     "faf-context",
     "faf-expert",
@@ -58,10 +72,10 @@ test("skills/list: returns every bundled skill with resultType complete", async 
 
 test("skills/get: returns the named skill by its SKILL.md uri", async () => {
   const client = await connected();
-  const result = (await client.request(
+  const result = await client.request(
     { method: "skills/get", params: { uri: "skill://faf-context/SKILL.md" } },
-    AnyResult,
-  )) as any;
+    SkillsGetResultSchema,
+  );
   assert.equal(result.resultType, "complete");
   assert.equal(result.skill.frontmatter.name, "faf-context");
   assert.equal(result.skill.uri, "skill://faf-context/SKILL.md");
@@ -71,11 +85,12 @@ test("skills/get: returns the named skill by its SKILL.md uri", async () => {
 test("skills/get: an unknown skill uri is InvalidParams (-32602), matching resources/read", async () => {
   const client = await connected();
   await assert.rejects(
-    () => client.request({ method: "skills/get", params: { uri: "skill://nonexistent/SKILL.md" } }, AnyResult),
-    (err: any) => {
-      assert.equal(err.code, ErrorCode.InvalidParams);
-      return true;
-    },
+    () =>
+      client.request(
+        { method: "skills/get", params: { uri: "skill://nonexistent/SKILL.md" } },
+        SkillsGetResultSchema,
+      ),
+    assertInvalidParams,
   );
   await client.close();
 });
@@ -93,10 +108,7 @@ test("resources/read: an unknown skill file uri is InvalidParams (-32602)", asyn
   const client = await connected();
   await assert.rejects(
     () => client.readResource({ uri: "skill://faf-context/does-not-exist.md" }),
-    (err: any) => {
-      assert.equal(err.code, ErrorCode.InvalidParams);
-      return true;
-    },
+    assertInvalidParams,
   );
 });
 

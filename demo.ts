@@ -6,7 +6,7 @@
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { z } from "zod";
+import { SkillsGetResultSchema, SkillsListResultSchema } from "./src/server.js";
 
 const transport = new StdioClientTransport({
   command: process.execPath,
@@ -19,20 +19,20 @@ console.log("server:", client.getServerVersion());
 console.log("capabilities:", JSON.stringify(client.getServerCapabilities()));
 
 // skills/list and skills/get aren't in the SDK's built-in convenience methods
-// yet (SEP-2640 hasn't landed there) — call them via the generic escape hatch.
-const AnyResult = z.looseObject({});
+// yet (SEP-2640 hasn't landed there) — call them via the generic escape
+// hatch, with a real schema so the response is validated, not just cast.
 
 // Discovery: skills/list surfaces everything this server serves. It's
 // legitimately 7 skills here (real content, not padding) — that's the
 // protocol doing its job, not something this demo needs to narrate.
-const list = (await client.request({ method: "skills/list", params: {} }, AnyResult)) as any;
+const list = await client.request({ method: "skills/list", params: {} }, SkillsListResultSchema);
 console.log(`skills/list -> discovered ${list.skills.length} skills`);
 
 // The worked example: one skill, shown in full.
-const get = (await client.request(
+const get = await client.request(
   { method: "skills/get", params: { uri: "skill://faf-context/SKILL.md" } },
-  AnyResult,
-)) as any;
+  SkillsGetResultSchema,
+);
 console.log("skills/get(faf-context) ->", JSON.stringify(get.skill, null, 2));
 
 const read = await client.readResource({ uri: "skill://faf-context/SKILL.md" });
