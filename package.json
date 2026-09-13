@@ -1,0 +1,63 @@
+{
+  "name": "mcp-skills-server",
+  "version": "0.1.0",
+  "mcpName": "io.github.Wolfe-Jam/mcp-skills-server",
+  "description": "Serves a directory of Agent Skills (SKILL.md) over MCP, per SEP-2640 (Skills Extension) — skills/list, skills/get, and skill:// resources with real digests.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agent-skills",
+    "skill.md",
+    "sep-2640",
+    "skills-over-mcp"
+  ],
+  "author": "James Wolfe",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "mcp-skills-server": "dist/bin.js"
+  },
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "exports": {
+    ".": "./dist/server.js",
+    "./server": "./dist/server.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "start": "node dist/bin.js",
+    "dev": "tsx src/bin.ts",
+    "demo": "tsx demo.ts",
+    "test": "node --import tsx --test \"test/*.test.ts\"",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage --test-coverage-exclude=\"test/**\" --test-coverage-lines=90 --test-coverage-functions=85 --test-coverage-branches=80 \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wolfe-Jam/mcp-skills-server.git"
+  },
+  "homepage": "https://github.com/Wolfe-Jam/mcp-skills-server"
+}
