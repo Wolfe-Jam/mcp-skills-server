@@ -31,6 +31,13 @@ test("server: declares the io.modelcontextprotocol/skills extension capability",
   await client.close();
 });
 
+test("server: a server declaring the skills extension MUST also declare resources (spec, 2026-09-13 rev)", async () => {
+  const client = await connected();
+  const caps = client.getServerCapabilities();
+  assert.ok(caps?.resources, "resources capability must be declared alongside the skills extension");
+  await client.close();
+});
+
 test("skills/list: returns every bundled skill with resultType complete", async () => {
   const client = await connected();
   const result = (await client.request({ method: "skills/list", params: {} }, AnyResult)) as any;
